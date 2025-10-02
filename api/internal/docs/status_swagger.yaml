@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Pseudo App API - Status Endpoint
+  description: |
+    API documentation for the status endpoint of Pseudo App.
+    This endpoint provides basic service status information.
+  version: 1.0.0
+  contact:
+    name: Pseudo App Team
+    email: support@pseudo-app.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.pseudo-app.com/api/v1
+    description: Production server
+
+paths:
+  /status:
+    get:
+      tags:
+        - Status
+      summary: Get service status
+      description: |
+        Returns the current status of the service.
+        This endpoint is typically used for basic health monitoring
+        and service availability checks.
+      operationId: getStatus
+      responses:
+        '200':
+          description: Service is running successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                success:
+                  summary: Successful status check
+                  value:
+                    message: "true"
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                method_not_allowed:
+                  summary: Method not allowed error
+                  value:
+                    error: "Method Not Allowed"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal_error:
+                  summary: Internal server error
+                  value:
+                    error: "Internal Server Error"
+      parameters:
+        - name: Accept
+          in: header
+          description: Content type that the client can understand
+          required: false
+          schema:
+            type: string
+            default: application/json
+            example: application/json
+        - name: User-Agent
+          in: header
+          description: User agent string
+          required: false
+          schema:
+            type: string
+            example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+components:
+  schemas:
+    StatusResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Status message indicating service availability
+          example: "true"
+          enum:
+            - "true"
+      example:
+        message: "true"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+          example: "Method Not Allowed"
+      example:
+        error: "Method Not Allowed"
+
+  responses:
+    StatusSuccess:
+      description: Service status retrieved successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StatusResponse'
+
+    MethodNotAllowed:
+      description: HTTP method not allowed for this endpoint
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error occurred
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Status
+    description: Service status operations
+    externalDocs:
+      description: Find out more about status monitoring
+      url: https://docs.pseudo-app.com/monitoring
+
+externalDocs:
+  description: Find out more about Pseudo App API
+  url: https://docs.pseudo-app.com

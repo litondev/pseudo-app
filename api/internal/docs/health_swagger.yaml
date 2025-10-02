@@ -1,0 +1,273 @@
+openapi: 3.0.3
+info:
+  title: Pseudo App API - Health Endpoint
+  description: |
+    API documentation for the health check endpoint of Pseudo App.
+    This endpoint provides comprehensive health status information including
+    database connectivity and service availability.
+  version: 1.0.0
+  contact:
+    name: Pseudo App Team
+    email: support@pseudo-app.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.pseudo-app.com/api/v1
+    description: Production server
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health Check
+      summary: Get comprehensive health status
+      description: |
+        Returns the comprehensive health status of the service including:
+        - Service availability
+        - Database connectivity
+        - System health indicators
+        
+        This endpoint is typically used by monitoring systems, load balancers,
+        and orchestration platforms (like Kubernetes) to determine if the
+        service is healthy and ready to receive traffic.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy and all dependencies are working
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthyResponse'
+              examples:
+                healthy:
+                  summary: All systems healthy
+                  value:
+                    status: "healthy"
+                    message: "Service is running"
+                    database: "connected"
+        '503':
+          description: Service is unhealthy due to dependency failures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnhealthyResponse'
+              examples:
+                database_error:
+                  summary: Database connection failed
+                  value:
+                    status: "unhealthy"
+                    message: "Database connection failed"
+                    error: "failed to ping database: connection refused"
+                database_timeout:
+                  summary: Database connection timeout
+                  value:
+                    status: "unhealthy"
+                    message: "Database connection failed"
+                    error: "failed to ping database: timeout"
+                database_not_initialized:
+                  summary: Database not initialized
+                  value:
+                    status: "unhealthy"
+                    message: "Database connection failed"
+                    error: "database not initialized"
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                method_not_allowed:
+                  summary: Method not allowed error
+                  value:
+                    error: "Method Not Allowed"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal_error:
+                  summary: Internal server error
+                  value:
+                    error: "Internal Server Error"
+      parameters:
+        - name: Accept
+          in: header
+          description: Content type that the client can understand
+          required: false
+          schema:
+            type: string
+            default: application/json
+            example: application/json
+        - name: User-Agent
+          in: header
+          description: User agent string (useful for monitoring identification)
+          required: false
+          schema:
+            type: string
+            example: "Kubernetes/1.21 health-check"
+        - name: X-Health-Check
+          in: header
+          description: Optional header to identify health check requests
+          required: false
+          schema:
+            type: string
+            example: "true"
+        - name: X-Request-ID
+          in: header
+          description: Optional request ID for tracing
+          required: false
+          schema:
+            type: string
+            example: "req-123456789"
+
+components:
+  schemas:
+    HealthyResponse:
+      type: object
+      required:
+        - status
+        - message
+        - database
+      properties:
+        status:
+          type: string
+          description: Overall health status of the service
+          example: "healthy"
+          enum:
+            - "healthy"
+        message:
+          type: string
+          description: Human-readable message about service status
+          example: "Service is running"
+        database:
+          type: string
+          description: Database connection status
+          example: "connected"
+          enum:
+            - "connected"
+      example:
+        status: "healthy"
+        message: "Service is running"
+        database: "connected"
+
+    UnhealthyResponse:
+      type: object
+      required:
+        - status
+        - message
+        - error
+      properties:
+        status:
+          type: string
+          description: Overall health status of the service
+          example: "unhealthy"
+          enum:
+            - "unhealthy"
+        message:
+          type: string
+          description: Human-readable message about the health issue
+          example: "Database connection failed"
+        error:
+          type: string
+          description: Detailed error message explaining the health issue
+          example: "failed to ping database: connection refused"
+      example:
+        status: "unhealthy"
+        message: "Database connection failed"
+        error: "failed to ping database: connection refused"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+          example: "Method Not Allowed"
+      example:
+        error: "Method Not Allowed"
+
+  responses:
+    HealthyResponse:
+      description: Service is healthy and all dependencies are working
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthyResponse'
+
+    UnhealthyResponse:
+      description: Service is unhealthy due to dependency failures
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnhealthyResponse'
+
+    MethodNotAllowed:
+      description: HTTP method not allowed for this endpoint
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error occurred
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  examples:
+    HealthyService:
+      summary: Healthy service example
+      description: Example response when all systems are healthy
+      value:
+        status: "healthy"
+        message: "Service is running"
+        database: "connected"
+
+    DatabaseConnectionFailed:
+      summary: Database connection failed
+      description: Example response when database connection fails
+      value:
+        status: "unhealthy"
+        message: "Database connection failed"
+        error: "failed to ping database: connection refused"
+
+    DatabaseTimeout:
+      summary: Database connection timeout
+      description: Example response when database connection times out
+      value:
+        status: "unhealthy"
+        message: "Database connection failed"
+        error: "failed to ping database: timeout"
+
+tags:
+  - name: Health Check
+    description: |
+      Health check operations for monitoring service availability and dependencies.
+      
+      **Usage Guidelines:**
+      - Use this endpoint for liveness and readiness probes
+      - Monitor the response time for performance indicators
+      - Check both status code and response body for complete health assessment
+      - A 200 status indicates healthy service, 503 indicates unhealthy
+      
+      **Monitoring Integration:**
+      - Kubernetes: Configure as liveness and readiness probe
+      - Load Balancers: Use for backend health checks
+      - Monitoring Systems: Set up alerts on 503 responses or timeouts
+    externalDocs:
+      description: Health check best practices
+      url: https://docs.pseudo-app.com/monitoring/health-checks
+
+externalDocs:
+  description: Find out more about Pseudo App API
+  url: https://docs.pseudo-app.com

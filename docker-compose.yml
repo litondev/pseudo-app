@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: pseudo_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pseudo
+      MYSQL_USER: pseudo_user
+      MYSQL_PASSWORD: pseudo_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./api/database/pseudo.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - pseudo_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  # Go API Service
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: pseudo_api
+    restart: unless-stopped
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_DEBUG: true
+      APP_LOGGER_LOCATION: "logger/fiber.log"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: pseudo_user
+      DB_PASSWORD: pseudo_password
+      DB_NAME: pseudo
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api/logger:/app/logger
+      - ./api/asset:/app/asset
+    networks:
+      - pseudo_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+
+  # PhpMyAdmin (Optional - for database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: pseudo_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8080:80"
+    networks:
+      - pseudo_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  pseudo_network:
+    driver: bridge
