@@ -10,8 +10,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joho/godotenv"
 
-	"pseudo-app/api/config"
-	"pseudo-app/api/pkg"
+	"api/config"
+	"api/pkg"
 )
 
 func main() {

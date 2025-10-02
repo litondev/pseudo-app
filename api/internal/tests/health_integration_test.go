@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/stretchr/testify/suite"
 
-	"pseudo-app/api/config"
+	"api/config"
 )
 
 // HealthIntegrationTestSuite defines the test suite for health endpoint integration tests
