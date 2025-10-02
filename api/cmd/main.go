@@ -88,6 +88,14 @@ func main() {
 
 // setupRoutes configures all application routes
 func setupRoutes(app *fiber.App) {
+	// Serve Swagger UI static files with proper routing
+	app.Static("/swagger", "./asset/swagger", fiber.Static{
+		Index: "index.html",
+	})
+	
+	// Serve YAML documentation files
+	app.Static("/docs", "./internal/docs")
+	
 	// API v1 group
 	v1 := app.Group("/api/v1")
 

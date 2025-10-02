@@ -342,6 +342,13 @@ Buatkan testing dan docs utk url dibawah ini
  - unit test dan integration testing
  - docs api -> mengunakan swagger
 
+Step 13 : 
+Download folder dist dari swagger ui github : https://github.com/swagger-api/swagger-ui taruh di api/asset
+
+Buatkan static url di api/cmd/main.go untuk memangil swagger di api/asset dengan prefix swagger  
+
+Load / Hubungkan seluruh file yang bertipe .yaml di folder api/internal/docs 
+
 (BLM SAMPEK SINI)
 Buatkan login backend 
  - login mengunakan table users kolom email dan password

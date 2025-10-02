@@ -1,0 +1,146 @@
+openapi: 3.0.0
+info:
+  title: Pseudo App API
+  description: API documentation for Pseudo App endpoints
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@pseudo-app.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+paths:
+  /status:
+    get:
+      summary: Get application status
+      description: Returns the current status of the application
+      tags:
+        - Status
+      responses:
+        '200':
+          description: Application status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "true"
+              examples:
+                success:
+                  summary: Successful status response
+                  value:
+                    message: "true"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Checks the health status of the application and its dependencies
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  message:
+                    type: string
+                    example: "Service is running"
+                  database:
+                    type: string
+                    example: "connected"
+              examples:
+                healthy:
+                  summary: Healthy service response
+                  value:
+                    status: "healthy"
+                    message: "Service is running"
+                    database: "connected"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "unhealthy"
+                  message:
+                    type: string
+                    example: "Database connection failed"
+                  error:
+                    type: string
+                    example: "connection refused"
+              examples:
+                unhealthy:
+                  summary: Unhealthy service response
+                  value:
+                    status: "unhealthy"
+                    message: "Database connection failed"
+                    error: "connection refused"
+
+components:
+  schemas:
+    StatusResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Status message
+      required:
+        - message
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Health status
+          enum: [healthy, unhealthy]
+        message:
+          type: string
+          description: Health message
+        database:
+          type: string
+          description: Database connection status
+      required:
+        - status
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        message:
+          type: string
+          description: Detailed error description
+      required:
+        - error
+
+tags:
+  - name: Status
+    description: Application status operations
+  - name: Health
+    description: Health check operations
