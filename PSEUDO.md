@@ -479,7 +479,6 @@ Buatkan login frontend
   - client/lib/providers -> untuk berhubungan dengan data global
   - client/lib/models -> untuk berhubungan dengan data api 
 
-
 dengan unit test dan integration test seluruh file yang telah dibuat di client
  - di dalam folder client/test/auth 
 
@@ -490,8 +489,6 @@ Buatkan script ci/cd untuk api dan client
 
 Tambahkan prometheus server di docker 
 Tambahkan prometheus client di api
-
----- BARU SAMPEK SINI
 
 Step 17 :
 Buatkan di client service di client/lib/services untuk refresh token lalu gunakan service tadi dengan ketentuan setiap setengah jam harus refresh token terus-menerus

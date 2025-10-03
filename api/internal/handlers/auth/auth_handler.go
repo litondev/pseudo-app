@@ -73,7 +73,10 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 	middlewares.RecordAuthAttempt("signup", "success")
 	middlewares.RecordJWTTokenIssued()
 
-	return c.Status(http.StatusOK).JSON(response)
+	return c.Status(http.StatusOK).JSON(fiber.Map{
+		"message": "success",
+		"data":    response,
+	})
 }
 
 // SignIn handles user login
@@ -126,7 +129,10 @@ func (h *AuthHandler) SignIn(c *fiber.Ctx) error {
 	middlewares.RecordAuthAttempt("signin", "success")
 	middlewares.RecordJWTTokenIssued()
 
-	return c.Status(http.StatusOK).JSON(response)
+	return c.Status(http.StatusOK).JSON(fiber.Map{
+		"message": "success",
+		"data":    response,
+	})
 }
 
 // Me handles getting current user information

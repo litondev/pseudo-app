@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/auth.dart';
 import '../models/user.dart';
 import '../services/auth/auth_service.dart';
@@ -93,6 +93,8 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     BuildContext? context,
   }) async {
+    print('AuthProvider: Starting signIn process for email: $email');
+    
     _setLoading(true);
     _clearError();
 
@@ -102,27 +104,49 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
 
-      final response = await AuthService.signIn(request);
-      _setAuthenticatedState(response.user);
+      print('AuthProvider: Making API call to AuthService.signIn');
+      final authResponse = await AuthService.signIn(request);
+      print('AuthProvider: Received response from API: ${authResponse.user.email}');
+
+      // Set authenticated state
+      print('AuthProvider: Setting authenticated state');
+      _setAuthenticatedState(authResponse.user);
       
-      // Restart token refresh service after successful login
-      await TokenRefreshService.instance.restartService();
-      
-      // Show success message
+      print('AuthProvider: Authentication successful, showing success message');
       if (context != null && context.mounted) {
-        SnackbarUtils.showSuccess(context, 'Welcome back!');
+        SnackbarUtils.showSuccess(
+          context,
+          'Welcome back, ${authResponse.user.name}!',
+        );
       }
-      
+
       return true;
     } catch (e) {
-      final error = AuthService.handleAuthError(e);
-      _setError(error);
+      print('AuthProvider: Authentication failed with error: $e');
+      _setError(AuthService.handleAuthError(e));
       
-      // Show error snackbar
       if (context != null && context.mounted) {
-        SnackbarUtils.showApiError(context, error);
+        String errorMessage = 'Sign in failed';
+        
+        if (e is AuthError) {
+          switch (e.type) {
+            case AuthErrorType.invalidCredentials:
+              errorMessage = 'Invalid email or password';
+              break;
+            case AuthErrorType.networkError:
+              errorMessage = 'Network error. Please check your connection';
+              break;
+            case AuthErrorType.serverError:
+              errorMessage = 'Server error. Please try again later';
+              break;
+            default:
+              errorMessage = e.message ?? 'Sign in failed';
+          }
+        }
+        
+        SnackbarUtils.showError(context, errorMessage);
       }
-      
+
       return false;
     } finally {
       _setLoading(false);

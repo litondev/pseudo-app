@@ -40,17 +40,30 @@ class AuthService {
   /// Sign in user
   static Future<AuthResponse> signIn(AuthRequest request) async {
     try {
+      print('AuthService: Making POST request to ${_authEndpoint}/signin');
+      print('AuthService: Request data: ${request.toJson()}');
+      
       final response = await ApiService.post<AuthResponse>(
         '$_authEndpoint/signin',
         request.toJson(),
         fromJsonT: (json) => AuthResponse.fromJson(json),
       );
 
+      print('AuthService: Received response - isSuccess: ${response.isSuccess}');
+      if (response.data != null) {
+        print('AuthService: Response data - user: ${response.data!.user.email}');
+        print('AuthService: Response data - has access token: ${response.data!.accessToken.isNotEmpty}');
+        print('AuthService: Response data - has refresh token: ${response.data!.refreshToken.isNotEmpty}');
+      }
+
       if (response.isSuccess && response.data != null) {
         // Save tokens and user data
+        print('AuthService: Saving authentication data to storage');
         await _saveAuthData(response.data!);
+        print('AuthService: Authentication data saved successfully');
         return response.data!;
       } else {
+        print('AuthService: Sign in failed - error: ${response.error}');
         throw AuthError(
           type: AuthErrorType.invalidCredentials,
           message: response.error ?? 'Sign in failed',
@@ -58,6 +71,7 @@ class AuthService {
         );
       }
     } catch (e) {
+      print('AuthService: Exception during sign in: $e');
       if (e is AuthError) rethrow;
       throw AuthError(
         type: AuthErrorType.networkError,
