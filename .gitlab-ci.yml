@@ -1,0 +1,243 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  API_IMAGE: $CI_REGISTRY_IMAGE/api
+  CLIENT_IMAGE: $CI_REGISTRY_IMAGE/client
+
+# Test API
+test-api:
+  stage: test
+  image: golang:1.21
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_DB: pseudo_test
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+  variables:
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_USER: postgres
+    DB_PASSWORD: postgres
+    DB_NAME: pseudo_test
+    CGO_ENABLED: 0
+  before_script:
+    - cd api
+    - go mod download
+  script:
+    - go test -v ./...
+    - go vet ./...
+  cache:
+    paths:
+      - api/vendor/
+  only:
+    changes:
+      - api/**/*
+      - .gitlab-ci.yml
+
+# Test Client
+test-client:
+  stage: test
+  image: cirrusci/flutter:3.16.0
+  before_script:
+    - cd client
+    - flutter pub get
+  script:
+    - flutter analyze
+    - flutter test
+    - flutter build web --release
+  artifacts:
+    paths:
+      - client/build/web/
+    expire_in: 1 hour
+  cache:
+    paths:
+      - client/.dart_tool/
+      - client/.pub-cache/
+  only:
+    changes:
+      - client/**/*
+      - .gitlab-ci.yml
+
+# Build API Docker Image
+build-api:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  needs:
+    - test-api
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd api
+    - docker build -t $API_IMAGE:$CI_COMMIT_SHA .
+    - docker tag $API_IMAGE:$CI_COMMIT_SHA $API_IMAGE:latest
+    - docker push $API_IMAGE:$CI_COMMIT_SHA
+    - docker push $API_IMAGE:latest
+  only:
+    changes:
+      - api/**/*
+      - .gitlab-ci.yml
+    refs:
+      - main
+      - develop
+
+# Build Client Docker Image
+build-client:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  needs:
+    - test-client
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd client
+    # Create Dockerfile for Flutter Web
+    - |
+      cat > Dockerfile << 'EOF'
+      FROM nginx:alpine
+      COPY build/web /usr/share/nginx/html
+      COPY nginx.conf /etc/nginx/nginx.conf
+      EXPOSE 80
+      CMD ["nginx", "-g", "daemon off;"]
+      EOF
+    # Create nginx config
+    - |
+      cat > nginx.conf << 'EOF'
+      events {
+          worker_connections 1024;
+      }
+      
+      http {
+          include       /etc/nginx/mime.types;
+          default_type  application/octet-stream;
+          
+          server {
+              listen 80;
+              server_name localhost;
+              root /usr/share/nginx/html;
+              index index.html;
+              
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+              
+              location /api/ {
+                  proxy_pass http://api:8080/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+      }
+      EOF
+    - docker build -t $CLIENT_IMAGE:$CI_COMMIT_SHA .
+    - docker tag $CLIENT_IMAGE:$CI_COMMIT_SHA $CLIENT_IMAGE:latest
+    - docker push $CLIENT_IMAGE:$CI_COMMIT_SHA
+    - docker push $CLIENT_IMAGE:latest
+  only:
+    changes:
+      - client/**/*
+      - .gitlab-ci.yml
+    refs:
+      - main
+      - develop
+
+# Deploy to Staging
+deploy-staging:
+  stage: deploy
+  image: alpine:latest
+  needs:
+    - build-api
+    - build-client
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying to staging environment..."
+    # Add your staging deployment commands here
+    # Example using docker-compose:
+    # - docker-compose -f docker-compose.staging.yml pull
+    # - docker-compose -f docker-compose.staging.yml up -d
+    # 
+    # Example using Kubernetes:
+    # - kubectl config use-context staging
+    # - kubectl set image deployment/api api=$API_IMAGE:$CI_COMMIT_SHA
+    # - kubectl set image deployment/client client=$CLIENT_IMAGE:$CI_COMMIT_SHA
+    # - kubectl rollout status deployment/api
+    # - kubectl rollout status deployment/client
+  environment:
+    name: staging
+    url: https://staging.pseudo-app.com
+  only:
+    refs:
+      - develop
+
+# Deploy to Production
+deploy-production:
+  stage: deploy
+  image: alpine:latest
+  needs:
+    - build-api
+    - build-client
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying to production environment..."
+    # Add your production deployment commands here
+    # Example using docker-compose:
+    # - docker-compose -f docker-compose.prod.yml pull
+    # - docker-compose -f docker-compose.prod.yml up -d
+    # 
+    # Example using Kubernetes:
+    # - kubectl config use-context production
+    # - kubectl set image deployment/api api=$API_IMAGE:$CI_COMMIT_SHA
+    # - kubectl set image deployment/client client=$CLIENT_IMAGE:$CI_COMMIT_SHA
+    # - kubectl rollout status deployment/api
+    # - kubectl rollout status deployment/client
+  environment:
+    name: production
+    url: https://pseudo-app.com
+  when: manual
+  only:
+    refs:
+      - main
+
+# Security Scanning (Optional)
+security-scan:
+  stage: test
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - docker run --rm -v "$PWD":/app -w /app securecodewarrior/docker-security-scanner
+  allow_failure: true
+  only:
+    refs:
+      - main
+      - develop
+
+# Code Quality (Optional)
+code-quality:
+  stage: test
+  image: sonarsource/sonar-scanner-cli:latest
+  script:
+    - sonar-scanner
+      -Dsonar.projectKey=$CI_PROJECT_NAME
+      -Dsonar.sources=.
+      -Dsonar.host.url=$SONAR_HOST_URL
+      -Dsonar.login=$SONAR_TOKEN
+  allow_failure: true
+  only:
+    refs:
+      - main
+      - develop

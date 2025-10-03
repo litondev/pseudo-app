@@ -42,6 +42,34 @@ class AppTextStyles {
     height: 1.4,
   );
 
+  // Headline styles (for compatibility)
+  static const TextStyle headlineMedium = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+    letterSpacing: -0.1,
+  );
+
+  static const TextStyle headlineSmall = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+  );
+
+  static const TextStyle headlineLarge = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    height: 1.3,
+    letterSpacing: -0.2,
+  );
+
+  static const TextStyle labelMedium = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    height: 1.4,
+    letterSpacing: 0.1,
+  );
+
   // Body styles
   static const TextStyle body = TextStyle(
     fontSize: 16,

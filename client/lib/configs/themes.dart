@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+class AppTheme {
+  static const Color primaryColor = Colors.blue;
+}
+
 class AppThemes {
   // Custom colors
   static const Color successColor = Color(0xFF4CAF50); // Green

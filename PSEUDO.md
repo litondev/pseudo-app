@@ -89,7 +89,7 @@ Buatkan Folder Di Dalam Folder Client
   - transaction 
 isi semua folder dengan file README.md -> isikan sesuai nama folder 
 
-Step 5 (ABAIKAN STEP INI HARUS DILAKUKAN MANUAL):
+Step (ABAIKAN STEP INI HARUS DILAKUKAN MANUAL):
 Manual Tambahakan Logo Default Di Api 
 
 Manual Tambahakan Product Default Di Api
@@ -182,7 +182,7 @@ buatkan data dummy juga
 image kosongkan / dibuat null  
 
 transactions
- - id bigintprimary key unsigned
+ - id bigint primary key unsigned
  - user_id bigint unsigned -> berrelasi
  - product_id bigint unsigned-> berrelasi
  - warehouse_id bigintunsigned -> berrelasi
@@ -330,6 +330,7 @@ Buatkan configs global di folder client/lib/configs
 Step 11 : 
 Buatkan docker-compose utk api dan mysql sesuai versi sekarang 
 taruh docker-composer di root folder saja
+Gunakan nginx load balancer untuk apinya
 
 Step 12 : 
 Buatkan testing dan docs utk url dibawah ini 
@@ -342,6 +343,8 @@ Buatkan testing dan docs utk url dibawah ini
  - unit test dan integration testing
  - docs api -> mengunakan swagger
 
+Buatkan middleware fiber cors di folder api/internal/middlewares terus pasang di semua routes api/cmd/main.go
+
 Step 13 : 
 Download folder dist dari swagger ui github : https://github.com/swagger-api/swagger-ui taruh di api/asset
 
@@ -349,32 +352,146 @@ Buatkan static url di api/cmd/main.go untuk memangil swagger di api/asset dengan
 
 Load / Hubungkan seluruh file yang bertipe .yaml di folder api/internal/docs 
 
-(BLM SAMPEK SINI)
+Step 14 : 
+Buatkan cronjob di api/cmd/cronjob untuk menghapus seluruh file .log di api/logger 
+Serta buatkan settingan cronjobnya di dalam folder api/cmd/cronjob 
+di eksekusi setiap awal bulan 
+
+Step 15 : 
 Buatkan login backend 
- - login mengunakan table users kolom email dan password
- - dengan validasi email dan password harus diisi
- - dengan jwt token 
- - dengan mengunakan hashing bcrypt (ambil dari pkg)
- - di dalam folder 
-  - api/internal/models
-  - api/internal/repositories/auth
-  - api/internal/handlers/auth
-  - api/internal/services/auth
-dengan unit test dan integration test
+ * NOTE 
+  - GUNAKAN BAHASA INGGRIS UTK SELURUH PENAMAAN CODE(VARIABEL,CLASS,FUNCTION DLL)
+  - SETIAP RESPONSE HARUS MEMILKI KOLOM message AGAR SERAGAM CTH SEMISAL MENGECEK STATUS SERVER {KEY message VALUE success/failed}
+  - UNTUK RESPONSE ERROR HARUS SERAGAM ERROR VALIDASI 422,ERROR SERVER 500,SUCCESS 200(SELECT/INSERT/UPDATE/DELETE)
+
+ - Login mengunakan table users kolom email dan password
+
+ - Dengan validasi hanya email dan password harus diisi
+ - Dengan mengunakan hashing bcrypt (ambil dari pkg)
+ - Dengan jwt token 
+
+ - Dengan url (tampung semua url dengan mengunakan 1 class saja di dalam module auth)
+  - api/v1/auth/signin
+  - api/v1/auth/signup
+  - api/v1/auth/me
+  - api/v1/auth/logout
+  - api/v1/auth/refresh-token
+ taruh url diatas di folder api/internal/routes/auth hubungkan dengan api/internal/main.go
+
+ info folder lain yang dibutuhkan
+  - api/internal/handlers/auth -> untuk berhubungan dengan request dan route
+  - api/internal/services/auth -> untuk berhubungan dengan repository dan handler
+  - api/internal/repositories/auth -> untuk berhubungan dengan model dan service
+  - api/internal/models -> untuk berhubungan dengan database dan repository
+
+  tambahakan middlewares di api/internal/middlewares untuk akses ke me dan refresh token stl itu pasang di route 
+
+dengan unit test dan integration test seluruh url api yang telah dibuat
  - di dalam folder api/internal/tests/auth 
-dengan doc api -> mengunakan swagger 
+
+dengan doc api seluruh url yang telah dibuat -> mengunakan swagger 
  - di dalam folder api/internal/docs sesuai nama module semisal auth 
-// dengan bahasa indo dan inggris 
+
+stl dibuat lalu gabungkan swagger seluruh swagger yang ada 
 
 Buatkan login frontend 
- - login mengunakan table users kolom email dan password
- - dengan validasi email dan password harus diisi
- - dengan jwt token (ambil dari api mengunakan http)
- - di dalam folder 
-  - client/lib/models
-  - client/lib/screens/auth
-  - clinet/lib/services
-  - clinet/lib/providers
-dengan unit test dan integration test 
+ * NOTE 
+   - GUNAKAN BAHASA INGGRIS UTK SELURUH PENAMAAN CODE(VARIABEL,CLASS,FUNCTION DLL)
+   - FOKUS APLIKASI WEB DAN MOBILE,TABLET,DESKTOP JADI ADA PERBEDAAN PENGGUNAN BEBERAPA LIBRARY/PKG SERTA PERBEDAAN TAMPILAN UKURAN AMBIL DARI FOLDER LIB/CONFIGS/PLATFORM.DART UNTUK MENGCEK PLATFORM STL ITU HARUS CEK LIB/CONFIGS/APP_SIZE.DART UNTUK MENGCEK UKURAN
+   - SETIAP REQUEST KE API BUATKAN LOADING 
+   - SETIAP RESPONSE API MEMILIKI KOLOM message DENGAN VALUE success/failed
+   - SETIAP RESPONSE KODE API ERROR VALIDASI 422,ERROR SERVER 500,SUCCESS 200(SELECT/INSERT/UPDATE/DELETE)
+   - GUNAKAN LIBRARY/PKG YANG SAMA KETIKA ADA KASUSU YANG SAMA SEMISAL ALERT PAKEK SNACK BAR HARUS PAKEK SNACK BAR TERUS 
+
+ - Login mengunakan table users kolom email dan password
+ - Dengan validasi email dan password harus diisi
+ - Dengan jwt token (ambil dari api mengunakan http)
+
+ - Penyimpanan jwt token memiliki perbedaan di web dan mobile,tablet,desktop  
+  - Web -> Local Storage
+  - Mobile,Tablet,Desktop -> Flutter Secure Storage 
+  
+ - Buatkan service di root folder client/lib/services biar bisa di akses global 
+  - me -> hubungkan dengan backend
+
+ - Buatkan halaman di dalam folder client/lib/screens/auth dipisah masing-masing dan hubungkan dengan backend 
+  - dashboard -> stl login ke sini 
+   - buatkan template global untuk seluruh halaman yang sudah login
+    - Web,Desktop (SESUAI PACKAGE PLATFORM DAN APP_SIZE)
+      - navbar top
+       - kiri (UNTUK BAGIAN NAVBAR LEFT)
+       - kanan 
+        button utk memangil dropdown isinya (TAMPILKAN ICON DG TEKS ICONYA DUMMY DULU)
+        - profil
+        - pengguna 
+        - dark/light mode
+        - keluar -> Buatkan function logout
+      - navbar left (TAMPILKAN ICON DG TEKS ICONYA DUMMY DULU) (BISA DI MINIMIZE DAN MAXIMAZE)
+        - master
+          - gudang
+          - produk 
+        - transaksi 
+    - Mobile,Tablet (TAMPILAN SESUAI PACKAGE PLATFORM DAN APP_SIZE)
+     - navbar bottom 
+      4 menu (TAMPILKAN ICON SAJA)
+       - profil 
+       - dashboard
+       - transaksi
+       - keluar -> Buatkan function logout 
+     - navbar top
+      - kiri 
+       button utk memangil navbar left 
+      - tengah 
+       logo cuman logonya blm ada dummy dulu saja
+      - kanan 
+       button utk memangil dropdown isinya (TAMPILKAN ICON DG TEKS ICONYA DUMMY DULU)
+        - profil
+        - pengguna 
+        - dark/light mode
+        - keluar -> Buatkan function logout
+     - navabr left (TAMPILKAN ICON DG TEKS ICONYA DUMMY DULU)
+      - master
+        - gudang
+        - produk 
+      - transaksi 
+
+  - masuk(signin) -> halaman awalan (TAMPILAN SESUAI PACKAGE PLATFORM DAN APP_SIZE)
+   - validasi lengkap utk inputan email dan password
+   - hubungkan dengan backend 
+   - gunakan http 
+   - gunakan provider 
+   - gunakan service me
+   - ada link untuk mengarahkan ke daftar 
+   
+  - daftar(signup) -> halaman daftar (langsung bisa masuk stl daftar) (TAMPILAN SESUAI PACKAGE PLATFORM DAN APP_SIZE)
+   - validasi lengkap utk inputan name,email dan password
+   - hubungkan dengan backend 
+   - gunakan http 
+   - gunakan provider 
+   - gunakan service me 
+   - ada link untuk mengarahkan ke masuk 
+
+  ketika error ketika request api cari kolom error lalu tampilkan dengan snak bar
+
+ info folder lain yang dibutuhkan
+  - client/lib/screens/auth -> untuk berhubungan dengan halaman/interface ui/ux
+  - client/lib/services/auth -> untuk berhubungan dengan url api 
+  - client/lib/providers -> untuk berhubungan dengan data global
+  - client/lib/models -> untuk berhubungan dengan data api 
+
+
+dengan unit test dan integration test seluruh file yang telah dibuat di client
  - di dalam folder client/test/auth 
-// dengan bahasa indo dan inggris 
+
+Step 16 : 
+Buatkan script ci/cd untuk api dan client
+ - github -> taruh di root folder
+ - gitlab -> taruh di root folder 
+
+Tambahkan prometheus server di docker 
+Tambahkan prometheus client di api
+
+---- BARU SAMPEK SINI
+
+Step 17 :
+Buatkan di client service di client/lib/services untuk refresh token lalu gunakan service tadi dengan ketentuan setiap setengah jam harus refresh token terus-menerus

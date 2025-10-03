@@ -24,12 +24,35 @@ services:
       retries: 10
       interval: 10s
 
-  # Go API Service
-  api:
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: pseudo_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - pseudo_network
+    depends_on:
+      - api1
+      - api2
+      - api3
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/nginx-health"]
+      timeout: 10s
+      retries: 3
+      interval: 30s
+
+  # Go API Service Instance 1
+  api1:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: pseudo_api
+    container_name: pseudo_api1
     restart: unless-stopped
     environment:
       APP_HOST: 0.0.0.0
@@ -41,8 +64,8 @@ services:
       DB_USER: pseudo_user
       DB_PASSWORD: pseudo_password
       DB_NAME: pseudo
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./api/logger:/app/logger
       - ./api/asset:/app/asset
@@ -52,10 +75,146 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/v1/health"]
       timeout: 10s
       retries: 5
       interval: 30s
+
+  # Go API Service Instance 2
+  api2:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: pseudo_api2
+    restart: unless-stopped
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_DEBUG: true
+      APP_LOGGER_LOCATION: "logger/fiber.log"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: pseudo_user
+      DB_PASSWORD: pseudo_password
+      DB_NAME: pseudo
+    expose:
+      - "8000"
+    volumes:
+      - ./api/logger:/app/logger
+      - ./api/asset:/app/asset
+    networks:
+      - pseudo_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/v1/health"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+
+  # Go API Service Instance 3
+  api3:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: pseudo_api3
+    restart: unless-stopped
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_DEBUG: true
+      APP_LOGGER_LOCATION: "logger/fiber.log"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: pseudo_user
+      DB_PASSWORD: pseudo_password
+      DB_NAME: pseudo
+    expose:
+      - "8000"
+    volumes:
+      - ./api/logger:/app/logger
+      - ./api/asset:/app/asset
+    networks:
+      - pseudo_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/api/v1/health"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pseudo_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - pseudo_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      timeout: 10s
+      retries: 3
+      interval: 30s
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pseudo_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - pseudo_network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      timeout: 10s
+      retries: 3
+      interval: 30s
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: pseudo_node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - pseudo_network
 
   # PhpMyAdmin (Optional - for database management)
   phpmyadmin:
@@ -78,6 +237,12 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  nginx_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:
