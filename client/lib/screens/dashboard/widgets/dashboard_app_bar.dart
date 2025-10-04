@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/theme_provider.dart';
 import '../../../configs/themes.dart';
 import '../../../configs/text_styles.dart';
 import '../dashboard_screen.dart';
@@ -18,10 +19,11 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AppBar(
       elevation: 0,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black87,
+      backgroundColor: theme.appBarTheme.backgroundColor,
+      foregroundColor: theme.appBarTheme.foregroundColor,
       leading: onMenuPressed != null
           ? IconButton(
               icon: const Icon(Icons.menu),
@@ -113,23 +115,25 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        authProvider.userDisplayName,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      authProvider.userDisplayName,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.appBarTheme.foregroundColor,
                       ),
-                      Text(
-                        authProvider.currentUser?.email ?? '',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    ),
+                    Text(
+                      authProvider.currentUser?.email ?? '',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: theme.appBarTheme.foregroundColor?.withOpacity(0.7),
                       ),
+                    ),
                     ],
                   ),
                   const SizedBox(width: 4),
-                  const Icon(
+                  Icon(
                     Icons.keyboard_arrow_down,
                     size: 20,
+                    color: theme.appBarTheme.foregroundColor,
                   ),
                 ],
               ),
@@ -154,6 +158,28 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ],
                   ),
                 ),
+                PopupMenuItem<String>(
+                  value: 'theme',
+                  child: Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      return Row(
+                        children: [
+                          Icon(
+                            themeProvider.isDarkMode 
+                                ? Icons.light_mode_outlined 
+                                : Icons.dark_mode_outlined, 
+                            size: 20
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode', 
+                            style: AppTextStyles.bodyMedium
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
                 const PopupMenuDivider(),
                 PopupMenuItem<String>(
                   value: 'logout',
@@ -171,7 +197,13 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               ],
-              onSelected: (value) => _handleMenuAction(context, value, authProvider),
+              onSelected: (value) {
+                if (value == 'theme') {
+                  Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                } else {
+                  _handleMenuAction(context, value, authProvider);
+                }
+              },
             );
           },
         ),
@@ -215,9 +247,9 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop(true);
-              authProvider.signOut();
+              await authProvider.signOut(context: context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

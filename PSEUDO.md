@@ -492,3 +492,14 @@ Tambahkan prometheus client di api
 
 Step 17 :
 Buatkan di client service di client/lib/services untuk refresh token lalu gunakan service tadi dengan ketentuan setiap setengah jam harus refresh token terus-menerus
+
+Step 15 Revisi :
+Revisi Dark Mode Blm Ada Di Dropdown
+
+Revisi Tombol Keluar Blm Bisa Digunakan 
+
+Revisi Navbar Top Warna Teksnya Putih Jadi Ndak Bisa Ke Baca 
+
+Revisi Mobile,Tablet Navbar Bottom Blm Ada 
+
+Revisi Menu Navbar Left Harusnya Menu Produk Dan Transaksi Ada Di Dalam Menu Master 

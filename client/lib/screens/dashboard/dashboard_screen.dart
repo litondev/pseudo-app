@@ -22,13 +22,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 1200;
-        final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1200;
-        final isMobile = constraints.maxWidth < 768;
-
-        if (isDesktop) {
+        if (constraints.maxWidth >= 1200) {
           return _buildDesktopLayout(context);
-        } else if (isTablet) {
+        } else if (constraints.maxWidth >= 800) {
           return _buildTabletLayout(context);
         } else {
           return _buildMobileLayout(context);
@@ -96,6 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         isDesktop: false,
         isTablet: true,
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
@@ -122,6 +119,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
         isDesktop: false,
         isTablet: false,
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(context),
+    );
+  }
+
+  /// Build bottom navigation bar for mobile and tablet
+  Widget _buildBottomNavigationBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final currentIndex = DashboardMenuItem.mainItems.indexWhere(
+      (item) => item.route == _selectedMenuItem.route,
+    );
+
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex >= 0 ? currentIndex : 0,
+      backgroundColor: theme.bottomNavigationBarTheme.backgroundColor ?? theme.cardColor,
+      selectedItemColor: theme.primaryColor,
+      unselectedItemColor: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+      selectedFontSize: 12,
+      unselectedFontSize: 12,
+      items: DashboardMenuItem.mainItems.map((item) {
+        return BottomNavigationBarItem(
+          icon: Icon(item.icon, size: 24),
+          label: item.title,
+        );
+      }).toList(),
+      onTap: (index) {
+        if (index < DashboardMenuItem.mainItems.length) {
+          setState(() {
+            _selectedMenuItem = DashboardMenuItem.mainItems[index];
+          });
+        }
+      },
     );
   }
 }
@@ -181,5 +210,14 @@ class DashboardMenuItem {
     transactions,
     analytics,
     settings,
+  ];
+
+  // Get main navigation items for bottom nav (excluding settings)
+  static const List<DashboardMenuItem> mainItems = [
+    dashboard,
+    products,
+    warehouses,
+    transactions,
+    analytics,
   ];
 }
